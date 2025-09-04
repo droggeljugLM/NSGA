@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="scroll-smooth">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>后验网络数学原理深度解析：从贝叶斯原则到不确定性估计</title>
+    <title>NSGA 算法家族详解：从 NSGA-I 到 NSGA-III</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Professional Blue -->
-    <!-- Application Structure Plan: The application is structured as a narrative journey with four main sections: a hero introduction, a "problem" section detailing the "模拟时代" (Simulation Era), a "solution" section explaining the "C++26 新范式" (New Paradigm), and an "impact" section showing the "伟大的解放" (Great Liberation). This thematic flow was chosen over a direct chapter-to-chapter copy to create a more engaging story for the user, guiding them from the historical context and challenges to the modern solution and its practical applications. Navigation is handled by a sticky header, allowing users to jump between these logical themes. Key interactions include toggling code examples and an interactive chart comparing old techniques, enhancing understanding and usability. -->
-    <!-- Visualization & Content Choices: 1. Report Info: Comparison of metaprogramming techniques (Macros, Generators, TMP, Libraries). Goal: Compare. Viz/Presentation: Interactive Radar Chart (Chart.js/Canvas). Interaction: Users can hover over points to see details. Justification: A radar chart is excellent for comparing multiple entities across several qualitative dimensions (Pros/Cons like readability, safety, complexity) in a single, compact view. 2. Report Info: Code snippets for Boost.PFR, C++26 reflection, serialization, ORM. Goal: Inform/Demonstrate. Viz/Presentation: Styled HTML `<pre>` blocks. Interaction: Initially collapsed to save space, expandable on click. Justification: This keeps the layout clean and allows users to focus on the explanatory text first, then dive into the code details as needed. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    
+    <!-- Prism JS CSS for Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" rel="stylesheet" />
+
+    <!-- KaTeX for LaTeX Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" xintegrity="sha384-n8MVd4RsNIU0KOVEMeaMurLxlBC7Pm5J49KJwHZmfrl4Ym/2RLHlavjADQOOuAIG" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" xintegrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" xintegrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+
     <style>
         body {
             font-family: 'Noto Sans SC', sans-serif;
@@ -34,34 +36,22 @@
             background-color: #EFF6FF; /* blue-50 */
             border-left-color: #2563EB; /* blue-600 */
         }
-        .katex-display {
-            margin: 1em 0;
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding: 1rem;
-            background-color: #f1f5f9;
+        .code-block {
+            padding: 0;
+            font-size: 0.875rem;
             border-radius: 0.5rem;
+            overflow: hidden;
         }
-        .concept-box {
-            background-color: #ffffff;
-            border-radius: 0.5rem;
-            padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-            border: 1px solid #e2e8f0;
+        .code-block code[class*="language-"] {
+            text-shadow: none;
         }
-        .interactive-canvas {
-            cursor: crosshair;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.5rem;
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 300px;
-            max-height: 400px;
+        .inline-code {
+            background-color: #DBEAFE; /* blue-100 */
+            color: #1E40AF; /* blue-800 */
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.9em;
         }
         table {
             width: 100%;
@@ -74,20 +64,27 @@
             padding: 0.75rem;
             text-align: left;
             vertical-align: top;
+            word-wrap: break-word;
         }
         th {
             background-color: #F1F5F9; /* slate-100 */
             font-weight: 600;
         }
-        tbody tr:nth-child(even) {
+        tbody tr:nth-child(odd) {
             background-color: #F8FAFC; /* slate-50 */
         }
-        .math-inline {
-             background-color: #DBEAFE; /* blue-100 */
-             color: #1E40AF; /* blue-800 */
-             padding: 0.125rem 0.375rem;
-             border-radius: 0.25rem;
+        /* KaTeX display mode alignment */
+        .katex-display {
+            margin: 1em 0;
+            overflow-x: auto;
+            overflow-y: hidden;
         }
+        /* Custom styles for pseudo-code highlighting */
+        .pseudo-keyword { color: #c792ea; } /* purple */
+        .pseudo-function { color: #c3e88d; } /* light green */
+        .pseudo-variable { color: #ffcb6b; } /* orange/yellow */
+        .pseudo-comment { color: #828f9a; font-style: italic; } /* grey */
+        .pseudo-operator { color: #89ddff; } /* light blue */
     </style>
 </head>
 <body class="antialiased flex flex-col min-h-screen">
@@ -95,572 +92,826 @@
     <div class="md:flex flex-1">
         <!-- Mobile Header -->
         <div class="md:hidden bg-white/80 backdrop-blur-md sticky top-0 z-40 shadow-sm flex justify-between items-center px-4 py-3">
-            <h1 class="text-xl font-bold text-slate-800">后验网络解析</h1>
+            <h1 class="text-xl font-bold text-slate-800">NSGA 算法家族</h1>
             <button id="mobile-menu-button" class="focus:outline-none">
                 <svg class="w-6 h-6 text-slate-700" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 6h16M4 12h16m-7 6h7"></path></svg>
             </button>
         </div>
 
         <!-- Sidebar Navigation -->
-        <aside id="sidebar" class="bg-white w-72 h-screen fixed top-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 md:flex-shrink-0 transition-transform duration-300 ease-in-out shadow-lg md:shadow-none border-r border-slate-200">
+        <aside id="sidebar" class="bg-white w-64 h-screen fixed top-0 left-0 z-50 transform -translate-x-full md:relative md:translate-x-0 md:flex-shrink-0 transition-transform duration-300 ease-in-out shadow-lg md:shadow-none border-r border-slate-200">
             <div class="p-6">
-                <h1 class="text-2xl font-bold text-slate-800 mb-8">后验网络解析</h1>
-                <nav id="table-of-contents" class="flex flex-col space-y-2">
-                    <a href="#section-intro" class="nav-link font-medium rounded-md px-4 py-2">1. 导论</a>
-                    <a href="#section-bayes" class="nav-link font-medium rounded-md px-4 py-2">2. 贝叶斯逻辑</a>
-                    <a href="#section-math-lang" class="nav-link font-medium rounded-md px-4 py-2">3. 数学语言</a>
-                    <a href="#section-arch" class="nav-link font-medium rounded-md px-4 py-2">4. 架构解析</a>
-                    <a href="#section-engine" class="nav-link font-medium rounded-md px-4 py-2">5. 数学推导</a>
-                    <a href="#section-training" class="nav-link font-medium rounded-md px-4 py-2">6. 训练机制</a>
-                    <a href="#section-interactive" class="nav-link font-medium rounded-md px-4 py-2">7. 交互演示</a>
-                    <a href="#section-synthesis" class="nav-link font-medium rounded-md px-4 py-2">8. 综合与意义</a>
+                <h1 class="text-2xl font-bold text-slate-800 mb-8">NSGA 算法家族</h1>
+                <nav class="flex flex-col space-y-1 text-sm">
+                    <a href="#intro" class="nav-link font-medium rounded-md px-4 py-2">引言：多目标优化</a>
+                    <a href="#nsga1" class="nav-link font-medium rounded-md px-4 py-2">NSGA-I</a>
+                    <a href="#nsga2" class="nav-link font-medium rounded-md px-4 py-2">NSGA-II</a>
+                    <a href="#nsga3" class="nav-link font-medium rounded-md px-4 py-2">NSGA-III</a>
+                    <a href="#summary" class="nav-link font-medium rounded-md px-4 py-2">对比小结</a>
+                    <a href="#tuning" class="nav-link font-medium rounded-md px-4 py-2">工程与调参</a>
+                    <a href="#code" class="nav-link font-medium rounded-md px-4 py-2">代码示例</a>
+                    <a href="#pitfalls" class="nav-link font-medium rounded-md px-4 py-2">常见问题</a>
+                    <a href="#extensions" class="nav-link font-medium rounded-md px-4 py-2">扩展阅读</a>
+                    <a href="#quickstart" class="nav-link font-medium rounded-md px-4 py-2">快速上手清单</a>
+                    <a href="#conclusion" class="nav-link font-medium rounded-md px-4 py-2">尾声</a>
                 </nav>
             </div>
         </aside>
 
         <!-- Main Content -->
-        <main id="main-content" class="flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto">
+        <main id="main-content" class="flex-1 p-4 md:p-8 overflow-y-auto">
             
-            <section id="section-intro" class="content-section">
+            <section id="intro" class="content-section">
                 <div class="max-w-4xl mx-auto">
-                    <h2 class="text-4xl md:text-5xl font-bold font-serif-sc text-slate-800 mb-4 leading-tight">探寻可信赖的人工智能</h2>
-                    <p class="text-xl md:text-2xl text-blue-600 mb-8">预测不确定性导论</p>
-                    <div class="concept-box space-y-8">
-                        <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">1.1 超越准确率：过度自信预测的危险</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">在机器学习领域，准确率长期以来被视为衡量模型性能的黄金标准。然而，一个仅追求高准确率的模型可能隐藏着巨大的风险。研究表明，传统的神经网络即使在面对与训练数据截然不同的输入时，也常常会给出过度自信的预测。这种现象在机器人、金融或医疗等高风险、高敏感度的应用场景中尤为危险。</p>
-                            <p class="mt-4 text-lg leading-relaxed text-slate-600">问题的核心并非模型偶尔出错，而是其缺乏“自知之明”。一个在99%的情况下都正确的模型，如果在其余1%的情况下被盲目信任，可能会导致灾难性后果。因此，构建能够意识到自身局限性、并量化其预测不确定性的模型，是迈向安全可靠人工智能系统的关键一步。</p>
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">多目标优化 (MOP) 的数学建模</h2>
+                    <p class="text-xl text-blue-600 mb-8">问题的基础</p>
+                    <div class="space-y-6 text-slate-600 leading-relaxed">
+                        <p>我们考虑最小化型的多目标优化问题 (Multi-objective Optimization Problem, MOP)：</p>
+                        $$
+                        \begin{aligned}
+                        \min_{\mathbf{x}\in\Omega}\quad & \mathbf{F}(\mathbf{x})
+                        = \bigl(f_1(\mathbf{x}),\, f_2(\mathbf{x}),\, \dots,\, f_M(\mathbf{x})\bigr)^{\!T} \\
+                        \text{s.t.}\quad & g_j(\mathbf{x}) \le 0,\quad j=1,\dots,J,\\
+                        & h_k(\mathbf{x}) = 0,\quad k=1,\dots,K.
+                        \end{aligned}
+                        $$
+                        <ul class="list-disc list-inside space-y-2">
+                            <li>$\mathbf{x}\in\mathbb{R}^n$：决策向量，$\Omega$ 为可行域</li>
+                            <li>$\mathbf{F}(\mathbf{x})\in\mathbb{R}^M$：由 $M$ 个相互冲突的目标函数组成</li>
+                        </ul>
+                        <h3 class="text-2xl font-semibold text-slate-700 pt-4">Pareto 支配与最优</h3>
+                        <p>在多目标优化中，由于目标之间相互冲突，很难找到一个解能在所有目标上都优于其他解。因此，我们引入 Pareto 最优的概念。</p>
+                         <ul class="list-disc list-inside space-y-4">
+                            <li>
+                                <strong>Pareto 支配 (Domination)</strong>：
+                                称决策向量 $\mathbf{x}_a$ 支配 $\mathbf{x}_b$（记作 $\mathbf{x}_a \prec \mathbf{x}_b$），当且仅当 $\mathbf{x}_a$ 在所有目标上都不劣于 $\mathbf{x}_b$，并且至少在一个目标上严格优于 $\mathbf{x}_b$。
+                                $$
+                                \mathbf{x}_a \prec \mathbf{x}_b 
+                                \;\;\iff\;\; 
+                                \forall m,\, f_m(\mathbf{x}_a) \le f_m(\mathbf{x}_b) 
+                                \;\land\; 
+                                \exists m',\, f_{m'}(\mathbf{x}_a) < f_{m'}(\mathbf{x}_b)
+                                $$
+                            </li>
+                             <li><strong>Pareto 最优解 (Pareto Optimal Solution)</strong>：一个解是 Pareto 最优的，如果它不被可行域中任何其他解所支配。</li>
+                             <li><strong>Pareto 最优集 (Pareto Set, PS)</strong>：所有 Pareto 最优解的集合。
+                                $$PS = \bigl\{\mathbf{x}^* \in \Omega \;\big|\; \nexists \mathbf{x}\in\Omega:\; \mathbf{x}\prec \mathbf{x}^* \bigr\}$$
+                             </li>
+                             <li><strong>Pareto 前沿 (Pareto Front, PF)</strong>：Pareto 最优集在目标空间的映射。
+                                $$PF = \bigl\{\mathbf{F}(\mathbf{x}^*) \;\big|\; \mathbf{x}^* \in PS \bigr\}$$
+                             </li>
+                        </ul>
+                        <div class="bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-6 my-6">
+                            <p class="text-lg font-semibold text-blue-800">核心目标</p>
+                            <p class="text-blue-700">多目标进化算法（MOEAs）的目标是：<strong>在一次运行中获得一个尽可能均匀、全面地逼近真实 Pareto 前沿的解集</strong>。</p>
                         </div>
-                        <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">1.2 两种不确定性：偶然不确定性与认知不确定性</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">为了精确地量化预测的不确定性，必须区分其两个基本来源：</p>
-                            <ul class="mt-4 space-y-3 list-disc list-inside text-lg text-slate-600">
-                                <li><strong class="text-blue-700">偶然不确定性 (Aleatoric Uncertainty):</strong> 源于数据本身固有的、不可约减的随机性或噪声。它反映了任务内在的模糊性。例如，一张模糊不清的图片本身就具有识别上的模糊性。对于分类任务，它对应的是对具体类别预测 <span class="math-inline" data-expr="y"></span> 的不确定性。</li>
-                                <li><strong class="text-blue-700">认知不确定性 (Epistemic Uncertainty):</strong> 源于模型知识的局限性，即对未见数据的无知。与偶然不确定性不同，认知不确定性是可以通过增加数据或改进模型来削减的。对于分类任务，它对应的是对预测概率分布 <span class="math-inline" data-expr="p"></span> 本身的不确定性。</li>
-                            </ul>
-                            <p class="mt-4 text-lg leading-relaxed text-slate-600">有效地区分并量化这两种不确定性，是构建能够与人类专家协同工作、并在关键时刻请求帮助的智能系统的基础。</p>
-                        </div>
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">1.3 目标：构建“知其所不知”的模型</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">本文所剖析的“后验网络”（Posterior Network, PostNet）正是为了实现这一目标。其核心任务是创建一个能够在单次前向传播中，高效且准确地量化不确定性的模型。具体而言，该模型致力于为<strong class="text-green-600">分布内（In-Distribution, ID）</strong>的清晰样本分配低总体不确定性；为ID中的模糊样本分配高的偶然不确定性和低的认知不确定性；最关键的是，为<strong class="text-red-600">分布外（Out-of-Distribution, OOD）</strong>的未知样本分配高的认知不确定性。而实现这一切的核心突破在于，它在训练过程中完全不需要接触任何OOD样本。</p>
-                        </div>
+                    </div>
+                     <div class="mt-12 pt-8 border-t border-slate-200 flex justify-between">
+                        <span class="bg-slate-100 text-slate-400 font-semibold py-2 px-4 rounded-lg cursor-not-allowed">← 上一节：无</span>
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="nsga1">下一节：NSGA-I →</a>
                     </div>
                 </div>
             </section>
             
-            <section id="section-bayes" class="content-section">
+            <section id="nsga1" class="content-section">
                 <div class="max-w-4xl mx-auto">
-                    <h2 class="text-4xl md:text-5xl font-bold font-serif-sc text-slate-800 mb-4 leading-tight">学习的逻辑</h2>
-                    <p class="text-xl md:text-2xl text-blue-600 mb-8">贝叶斯信念更新入门</p>
-                    <div class="concept-box space-y-8">
-                        <p class="text-lg leading-relaxed text-slate-600">为了理解PostNet如何学习不确定性，我们必须首先回到其理论基石——贝叶斯定理。贝叶斯方法的核心思想是，我们对世界的信念不是一成不变的，而是随着新证据的出现而不断更新。</p>
-                        <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">2.1 核心原则：先验、似然与后验</h3>
-                            <ul class="mt-4 space-y-3 list-disc list-inside text-lg text-slate-600">
-                                <li><strong>先验信念 (Prior Belief) <span class="math-inline" data-expr="P(p)"></span>:</strong> 在观测到任何数据之前，我们对某个参数 <span class="math-inline" data-expr="p"></span> 的初始信念或假设。</li>
-                                <li><strong>似然 (Likelihood) <span class="math-inline" data-expr="P(\{y\}|p)"></span>:</strong> 在给定参数 <span class="math-inline" data-expr="p"></span> 的某个特定值时，我们观测到当前数据集 <span class="math-inline" data-expr="\{y\}"></span> 的概率。它衡量了数据对不同参数值的“支持程度”。</li>
-                                <li><strong>后验信念 (Posterior Belief) <span class="math-inline" data-expr="P(p|\{y\})"></span>:</strong> 在综合了先验信念和数据证据之后，我们对参数 <span class="math-inline" data-expr="p"></span> 更新后的信念。</li>
-                            </ul>
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">NSGA-I：开创性的奠基之作 (1994/1995)</h2>
+                    <p class="text-xl text-blue-600 mb-8">Nondominated Sorting Genetic Algorithm</p>
+                    <div class="space-y-6 text-slate-600 leading-relaxed">
+                        <h3 class="text-2xl font-semibold text-slate-700">背景与范式转移</h3>
+                        <p>在 NSGA-I 出现之前，主流的多目标优化方法通常是将多个目标聚合成一个单目标函数，例如使用加权和法或 $\varepsilon$-约束法。但这些方法存在一些固有的局限性，如对权重/阈值的设置非常敏感，且通常只能找到 Pareto 前沿的凸部分。</p>
+                        <p><strong>NSGA-I 的革命性在于</strong>：它首次提出直接在种群的个体之间使用 Pareto 支配关系进行排序，让解与解在原始的目标空间中进行“原生态”的竞争，而无需预先设定任何权重或参数。</p>
+                        
+                        <h3 class="text-2xl font-semibold text-slate-700 pt-4">核心机制与数学要点</h3>
+                        <ul class="list-disc list-inside space-y-4">
+                            <li>
+                                <strong>非支配排序 (Non-dominated Sorting)</strong>：这是 NSGA-I 的核心。算法将整个种群分层。首先，找出所有不被其他任何解支配的个体，将它们放入第一层前沿 $F_1$。然后，暂时忽略 $F_1$ 中的个体，在剩余的种群中再次找出所有非支配解，构成第二层前沿 $F_2$。这个过程不断重复，直到所有个体都被分层。
+                            </li>
+                            <li>
+                                <strong>共享函数 (Fitness Sharing)</strong>：为了维持种群的多样性，防止解聚集在 Pareto 前沿的某个小区域，NSGA-I 引入了共享函数机制。它通过计算同一个前沿中个体 $i$ 的“小生境数量” $nc_i$ 来惩罚其原始适应度。一个区域的解越拥挤，该区域内个体的适应度受到的惩罚就越大。
+                                $$
+                                f_i' = \frac{f_i}{nc_i}, \quad nc_i = \sum_{j=1}^N \text{sh}(d_{ij}), \quad \text{sh}(d) = 
+                                \begin{cases}
+                                1 - (d/\sigma_{\text{share}})^\alpha, & d < \sigma_{\text{share}}, \\
+                                0, & \text{otherwise}.
+                                \end{cases}
+                                $$
+                                其中 $d_{ij}$ 是个体 $i$ 和 $j$ 之间的距离，$\sigma_{\text{share}}$ 是预设的共享半径，$\alpha$ 通常取 1 或 2。
+                            </li>
+                        </ul>
+                        
+                        <h3 class="text-2xl font-semibold text-slate-700 pt-4">伪代码（要点）</h3>
+                        <pre class="code-block mt-4"><code class="language-text"><span class="pseudo-function">NSGA-I</span>(<span class="pseudo-variable">P0</span>, <span class="pseudo-variable">N</span>, <span class="pseudo-variable">T</span>, <span class="pseudo-variable">σ_share</span>):
+  <span class="pseudo-keyword">for</span> <span class="pseudo-variable">t</span> <span class="pseudo-operator">=</span> 0..T:
+    <span class="pseudo-variable">F</span> <span class="pseudo-operator">=</span> <span class="pseudo-function">NonDominatedSort</span>(<span class="pseudo-variable">Pt</span>)
+    <span class="pseudo-function">AssignDummyFitness</span>(<span class="pseudo-variable">F</span>)             <span class="pseudo-comment"># 前沿层级越靠前，虚拟适应度越好</span>
+    <span class="pseudo-keyword">for each</span> front <span class="pseudo-variable">Fi</span>:
+        <span class="pseudo-keyword">for</span> <span class="pseudo-variable">p</span> <span class="pseudo-keyword">in</span> <span class="pseudo-variable">Fi</span>:
+          <span class="pseudo-variable">nc</span> <span class="pseudo-operator">=</span> <span class="pseudo-function">NicheCount</span>(<span class="pseudo-variable">p</span>, <span class="pseudo-variable">Fi</span>, <span class="pseudo-variable">σ_share</span>)
+          <span class="pseudo-variable">p</span>.fitness <span class="pseudo-operator">=</span> <span class="pseudo-variable">p</span>.fitness <span class="pseudo-operator">/</span> <span class="pseudo-variable">nc</span>      <span class="pseudo-comment"># 应用共享惩罚</span>
+    <span class="pseudo-variable">Pt+1</span> <span class="pseudo-operator">=</span> <span class="pseudo-function">Variation</span>(<span class="pseudo-function">Selection</span>(<span class="pseudo-variable">Pt</span>))     <span class="pseudo-comment"># 使用轮盘赌/锦标赛选择 + 交叉变异</span>
+<span class="pseudo-keyword">return</span> <span class="pseudo-function">F1</span>(<span class="pseudo-variable">P_T</span>)</code></pre>
+                        
+                        <h3 class="text-2xl font-semibold text-slate-700 pt-4">优缺点</h3>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                                <h4 class="font-bold text-green-800">优点</h4>
+                                <ul class="list-disc list-inside text-green-700 mt-2">
+                                    <li>思想开创性，无需设置权重。</li>
+                                    <li>一次运行即可得到一组权衡解。</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                                <h4 class="font-bold text-red-800">缺点</h4>
+                                <ul class="list-disc list-inside text-red-700 mt-2">
+                                    <li>计算复杂度高，常被指出为 $O(MN^3)$ 级别。</li>
+                                    <li>共享半径 $\sigma_{\text{share}}$ 参数难以设定。</li>
+                                    <li><strong>无显式精英策略</strong>，导致优秀的解可能在进化过程中丢失。</li>
+                                </ul>
+                            </div>
                         </div>
-                        <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">2.2 贝叶斯定理详解 (公式2解析)</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">论文中的公式(2)是贝叶斯定理的简洁表达：</p>
-                            <div class="math-block" data-expr="P(p|\{y^{(j)}\}_{j=1}^n) \propto P(\{y^{(j)}\}_{j=1}^n|p) \times P(p)"></div>
-                            <p class="mt-4 text-lg leading-relaxed text-slate-600">这个公式的含义是：<strong class="text-blue-700">后验信念 ∝ 似然 × 先验信念</strong>。它精确地刻画了信念更新的逻辑：我们从一个初始的先验信念出发，当观测到新数据时，利用似然函数来评估这些数据在不同参数下出现的可能性，通过将两者相乘，我们得到了更新后的后验信念。</p>
+
+                    </div>
+                    <div class="mt-12 pt-8 border-t border-slate-200 flex justify-between">
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="intro">← 上一节：引言</a>
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="nsga2">下一节：NSGA-II →</a>
+                    </div>
+                </div>
+            </section>
+
+            <section id="nsga2" class="content-section">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">NSGA-II：工程化的里程碑 (2002)</h2>
+                    <p class="text-xl text-blue-600 mb-8">Fast and Elitist Multiobjective Genetic Algorithm</p>
+                    <div class="space-y-6 text-slate-600 leading-relaxed">
+                        <h3 class="text-2xl font-semibold text-slate-700">目标：把“优雅思想”变成“高效易用”的工具</h3>
+                        <p>NSGA-II 的出现旨在解决 NSGA-I 的三大痛点：<strong>复杂度高、参数（共享半径）难调、缺乏精英主义</strong>。它通过一系列系统性的改进，使得非支配排序的思想变得高效、鲁棒且易于实现，迅速成为多目标优化领域的基准算法。</p>
+                        
+                        <h3 class="text-2xl font-semibold text-slate-700 pt-4">三大核心改进</h3>
+                        <ol class="list-decimal list-inside space-y-4">
+                            <li>
+                                <strong>快速非支配排序 (Fast Non-dominated Sort)</strong>：
+                                通过为每个个体维护两个量：<code class="inline-code">n</code> (支配它的解的数量) 和 <code class="inline-code">S</code> (它支配的解的集合)，将排序过程的计算复杂度从 $O(MN^3)$ 显著降低到 $O(MN^2)$。
+                            </li>
+                            <li>
+                                <strong>拥挤距离 (Crowding Distance)</strong>：
+                                为了取代需要调参的共享函数，NSGA-II 提出了一种免参数的多样性维持机制。对于同一前沿中的每个解，计算它在目标空间中被周围邻居“包围”的程度。具体来说，对每个目标函数，将该前沿的解进行排序，边界解的拥挤距离设为无穷大，而内部解 $i$ 的距离是其两侧解在各目标上归一化距离的总和：
+                                $$
+                                CD(i) = \sum_{m=1}^M \frac{f_m(i+1) - f_m(i-1)}{f_m^{\max} - f_m^{\min}}.
+                                $$
+                                在选择时，拥挤距离大的解（即更“稀疏”的解）会被优先保留。
+                            </li>
+                             <li>
+                                <strong>显式精英策略 (Elitism)</strong>：
+                                这是 NSGA-II 最重要的改进之一。在每一代，父代种群 $P_t$ 和通过交叉变异产生的子代种群 $Q_t$ 会被合并成一个大小为 $2N$ 的临时种群 $R_t = P_t \cup Q_t$。然后，对这个合并种群进行非支配排序和拥挤距离计算，并从中选出最优的 $N$ 个个体进入下一代。这种机制确保了父代中的优秀解不会丢失，保证了算法的收敛性。
+                            </li>
+                        </ol>
+                        
+                        <div class="bg-white border-l-4 border-blue-500 rounded-r-lg shadow-md p-6 my-6">
+                           <h4 class="font-semibold text-lg text-slate-700 mb-2">拥挤比较算子 ($\prec_n$)</h4>
+                           <p>NSGA-II 使用一个新的比较算子来决定个体 $i$ 和 $j$ 的优劣：</p>
+                           $$
+                            i \prec_n j 
+                            \;\;\iff\;\;
+                            \bigl(\text{rank}_i < \text{rank}_j\bigr)
+                            \;\lor\;
+                            \bigl(\text{rank}_i = \text{rank}_j \;\land\; CD(i) > CD(j)\bigr)
+                           $$
+                           <p class="mt-2">即：优先选择非支配排序等级更低的解；如果等级相同，则优先选择拥挤距离更大的解。</p>
                         </div>
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">2.3 共轭的力量：让贝叶斯更新变得可行</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">在实践中，计算后验分布通常非常复杂。然而，共轭先验（Conjugate Priors）提供了一种“捷径”。当一个先验分布族与一个似然函数族“共轭”时，其对应的后验分布将与先验分布属于同一个分布族。这意味着复杂的积分运算可以被简化为简单的代数参数更新。</p>
-                            <p class="mt-4 text-lg leading-relaxed text-slate-600">在分类问题中，数据的似然函数通常遵循<strong>分类分布</strong>，而与其共轭的先验分布恰好是<strong>狄利克雷分布</strong>。因此，PostNet选择狄利克雷分布来建模不确定性，是一个基于计算可行性的深刻战略选择。</p>
+
+                        <h3 class="text-2xl font-semibold text-slate-700 pt-4">伪代码（要点）</h3>
+                        <pre class="code-block mt-4"><code class="language-text"><span class="pseudo-function">NSGA-II</span>(<span class="pseudo-variable">P0</span>, <span class="pseudo-variable">N</span>, <span class="pseudo-variable">T</span>):
+  <span class="pseudo-keyword">for</span> <span class="pseudo-variable">t</span> <span class="pseudo-operator">=</span> 0..T:
+    <span class="pseudo-variable">Qt</span> <span class="pseudo-operator">=</span> <span class="pseudo-function">Variation</span>(<span class="pseudo-function">Selection</span>(<span class="pseudo-variable">Pt</span>))       <span class="pseudo-comment"># 交叉 + 变异</span>
+    <span class="pseudo-variable">Rt</span> <span class="pseudo-operator">=</span> <span class="pseudo-variable">Pt</span> ∪ <span class="pseudo-variable">Qt</span>                         <span class="pseudo-comment"># 合并父代与子代</span>
+    <span class="pseudo-variable">F</span> <span class="pseudo-operator">=</span> <span class="pseudo-function">FastNonDominatedSort</span>(<span class="pseudo-variable">Rt</span>)
+    <span class="pseudo-variable">Pt+1</span> <span class="pseudo-operator">=</span> ∅; <span class="pseudo-variable">i</span> <span class="pseudo-operator">=</span> 1
+    <span class="pseudo-comment"># 逐层填充新种群</span>
+    <span class="pseudo-keyword">while</span> |<span class="pseudo-variable">Pt+1</span>| <span class="pseudo-operator">+</span> |<span class="pseudo-variable">Fi</span>| ≤ N:
+        <span class="pseudo-variable">Pt+1</span> <span class="pseudo-operator">=</span> <span class="pseudo-variable">Pt+1</span> ∪ <span class="pseudo-variable">Fi</span>; i++
+    <span class="pseudo-comment"># 当一层无法完全放入时，按拥挤距离截断</span>
+    <span class="pseudo-function">CalculateCrowdingDistance</span>(<span class="pseudo-variable">Fi</span>)
+    <span class="pseudo-function">sort</span>(<span class="pseudo-variable">Fi</span>, <span class="pseudo-keyword">by</span> crowding_distance <span class="pseudo-keyword">desc</span>)
+    <span class="pseudo-variable">Pt+1</span> <span class="pseudo-operator">=</span> <span class="pseudo-variable">Pt+1</span> ∪ <span class="pseudo-variable">Fi</span>[1 : N <span class="pseudo-operator">-</span> |<span class="pseudo-variable">Pt+1</span>|]
+<span class="pseudo-keyword">return</span> <span class="pseudo-function">F1</span>(<span class="pseudo-variable">P_T</span>)</code></pre>
+                        
+                        <h3 class="text-2xl font-semibold text-slate-700 pt-4">成功与局限</h3>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                                <h4 class="font-bold text-green-800">成功</h4>
+                                <ul class="list-disc list-inside text-green-700 mt-2">
+                                    <li>在 2-3 个目标的 MOPs 上性能稳健、高效。</li>
+                                    <li>参数少，实现简洁，易于使用。</li>
+                                    <li>成为多目标优化领域的“事实标准”和强基线。</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                                <h4 class="font-bold text-red-800">局限 (高维多目标)</h4>
+                                <p class="text-red-700 mt-2">当目标数 $M \ge 4$ (即 many-objective problems) 时：</p>
+                                <ul class="list-disc list-inside text-red-700 mt-2">
+                                    <li><strong>支配失效</strong>：在高维空间中，大部分解都互不支配，导致它们几乎都进入了第一层前沿 $F_1$，选择压力急剧减弱。</li>
+                                    <li><strong>拥挤距离区分度下降</strong>：拥挤距离是基于相邻解计算的，在高维空间中，这种局部密度估计难以有效维持解集的全局多样性。</li>
+                                </ul>
+                            </div>
                         </div>
+
+                    </div>
+                    <div class="mt-12 pt-8 border-t border-slate-200 flex justify-between">
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="nsga1">← 上一节：NSGA-I</a>
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="nsga3">下一节：NSGA-III →</a>
                     </div>
                 </div>
             </section>
             
-            <section id="section-math-lang" class="content-section">
+            <section id="nsga3" class="content-section">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">NSGA-III：面向高维多目标 (2014)</h2>
+                    <p class="text-xl text-blue-600 mb-8">An Evolutionary Many-Objective Optimization Algorithm Using Reference-Point-Based Nondominated Sorting</p>
+                    <div class="space-y-6 text-slate-600 leading-relaxed">
+                        <h3 class="text-2xl font-semibold text-slate-700">背景：直面“维数灾难”</h3>
+                        <p>随着目标数量 $M$ 的增加，NSGA-II 的性能急剧下降。在 $M \ge 4$ 的场景中，仅仅依靠“解与解的局部比较”（如支配关系和拥挤距离）已不足以为种群进化提供稳定和有效的全局引导。NSGA-III 正是为了解决这个问题而设计的。</p>
+                        
+                        <h3 class="text-2xl font-semibold text-slate-700 pt-4">核心思想：参考点/方向引导的精英选择</h3>
+                        <p>NSGA-III 的主体框架与 NSGA-II 类似，仍然采用“父子代合并 + 快速非支配排序”。其革命性的创新在于<strong>当需要从临界前沿 $F_l$ 中选择部分个体填满下一代种群时</strong>，它不再使用拥挤距离，而是引入了一套基于参考点的选择机制：</p>
+                        <ol class="list-decimal list-inside space-y-4">
+                            <li>
+                                <strong>预设参考点</strong>：
+                                算法开始前，在归一化的目标超平面上生成一组均匀分布的参考点（或方向向量）$\{\mathbf{w}_j\}$。这些参考点作为“锚点”，用于引导种群向整个 Pareto 前沿均匀分布。参考点的数量 $P$ 通常由单层分割数 $H$ 和目标数 $M$ 决定：
+                                $$
+                                P = \binom{H+M-1}{M-1}.
+                                $$
+                                为获得更合适的种群规模和更均匀的覆盖，有时会使用两层参考点（如 $H_1, H_2$）。
+                            </li>
+                            <li>
+                                <strong>种群归一化</strong>：
+                                在关联个体与参考点之前，需要对当前种群的成员进行归一化，以消除不同目标量纲的影响。这通常通过找到理想点 $\mathbf{z}^{\min}$ 和极值点来构造一个超平面，并据此进行缩放。
+                            </li>
+                             <li>
+                                <strong>关联操作</strong>：
+                                将每个（归一化后的）个体与离它最近的参考点（根据垂直距离）进行关联。每个个体只关联一个参考点，但一个参考点可以关联多个个体。
+                                $$
+                                d^\perp\big(\mathbf{f}^{(n)}, \mathbf{w}_j\big)
+                                = \left\|
+                                \mathbf{f}^{(n)} -
+                                \frac{\mathbf{w}_j^T \mathbf{f}^{(n)}}{\|\mathbf{w}_j\|^2}\,\mathbf{w}_j
+                                \right\|.
+                                $$
+                            </li>
+                             <li>
+                                <strong>小生境保留 (Niching Preservation)</strong>：
+                                这是选择的核心。首先，统计每个参考点 $j$ 已经被前几层（$F_1, \dots, F_{l-1}$）个体占用的数量 $\rho_j$。然后，从临界前沿 $F_l$ 中逐个选择个体，选择规则如下：
+                                <ul class="list-disc list-inside ml-6 mt-2 space-y-2">
+                                    <li>找到当前占用数 $\rho$ 最小的参考点集合。</li>
+                                    <li>从这个集合中随机选一个参考点 $j^*$。</li>
+                                    <li>查看与 $j^*$ 关联的临界层个体：
+                                        <ul class="list-circle list-inside ml-6 mt-2 space-y-2">
+                                             <li>如果 $\rho_{j^*} = 0$（该方向首次被填充），选择其中垂直距离 $d^\perp$ 最小的那个个体。</li>
+                                             <li>如果 $\rho_{j^*} > 0$（该方向已被占用），则随机选择一个关联个体。</li>
+                                        </ul>
+                                    </li>
+                                     <li>被选中的个体加入下一代种群，并更新 $\rho_{j^*} \leftarrow \rho_{j^*} + 1$。重复此过程，直到种群填满。</li>
+                                </ul>
+                                这个机制确保了那些“人烟稀少”的参考方向被优先照顾，从而维持了种群在整个目标空间的广泛分布。
+                            </li>
+                        </ol>
+                        
+                        <h3 class="text-2xl font-semibold text-slate-700 pt-4">伪代码（要点）</h3>
+                        <pre class="code-block mt-4"><code class="language-text"><span class="pseudo-function">NSGA-III</span>(<span class="pseudo-variable">P0</span>, <span class="pseudo-variable">N</span>, <span class="pseudo-variable">T</span>, <span class="pseudo-variable">M</span>, <span class="pseudo-variable">ref_dirs</span>):
+  <span class="pseudo-variable">Z</span> <span class="pseudo-operator">=</span> <span class="pseudo-variable">ref_dirs</span>
+  <span class="pseudo-keyword">for</span> <span class="pseudo-variable">t</span> <span class="pseudo-operator">=</span> 0..T:
+    <span class="pseudo-variable">Qt</span> <span class="pseudo-operator">=</span> <span class="pseudo-function">Variation</span>(<span class="pseudo-function">Selection</span>(<span class="pseudo-variable">Pt</span>))
+    <span class="pseudo-variable">Rt</span> <span class="pseudo-operator">=</span> <span class="pseudo-variable">Pt</span> ∪ <span class="pseudo-variable">Qt</span>
+    <span class="pseudo-variable">F</span> <span class="pseudo-operator">=</span> <span class="pseudo-function">FastNonDominatedSort</span>(<span class="pseudo-variable">Rt</span>)
+    <span class="pseudo-variable">Pt+1</span> <span class="pseudo-operator">=</span> ∅; <span class="pseudo-variable">i</span> <span class="pseudo-operator">=</span> 1
+    <span class="pseudo-comment"># 填充非临界前沿</span>
+    <span class="pseudo-keyword">while</span> |<span class="pseudo-variable">Pt+1</span>| <span class="pseudo-operator">+</span> |<span class="pseudo-variable">Fi</span>| ≤ N: 
+        <span class="pseudo-variable">Pt+1</span> <span class="pseudo-operator">=</span> <span class="pseudo-variable">Pt+1</span> ∪ <span class="pseudo-variable">Fi</span>; i++
+    
+    <span class="pseudo-comment"># 从临界前沿 Fl = Fi 中选择</span>
+    <span class="pseudo-keyword">if</span> |<span class="pseudo-variable">Pt+1</span>| < N:
+        <span class="pseudo-variable">K</span> <span class="pseudo-operator">=</span> <span class="pseudo-variable">N</span> <span class="pseudo-operator">-</span> |<span class="pseudo-variable">Pt+1</span>|   <span class="pseudo-comment"># 需要选择的数量</span>
+        <span class="pseudo-variable">S</span> <span class="pseudo-operator">=</span> <span class="pseudo-variable">Pt+1</span> ∪ <span class="pseudo-variable">Fl</span>
+        <span class="pseudo-function">Normalize</span>(<span class="pseudo-variable">S</span>)
+        (<span class="pseudo-variable">π</span>, <span class="pseudo-variable">d⊥</span>) <span class="pseudo-operator">=</span> <span class="pseudo-function">Associate</span>(<span class="pseudo-variable">S</span>, <span class="pseudo-variable">Z</span>)      <span class="pseudo-comment"># 关联并计算垂直距离</span>
+        <span class="pseudo-variable">ρ</span> <span class="pseudo-operator">=</span> <span class="pseudo-function">NicheCounts</span>(<span class="pseudo-variable">Pt+1</span>, <span class="pseudo-variable">π</span>)     <span class="pseudo-comment"># 统计已选解的小生境数量</span>
+        <span class="pseudo-variable">Chosen</span> <span class="pseudo-operator">=</span> <span class="pseudo-function">NichingSelect</span>(<span class="pseudo-variable">Fl</span>, <span class="pseudo-variable">K</span>, <span class="pseudo-variable">Z</span>, <span class="pseudo-variable">π</span>, <span class="pseudo-variable">d⊥</span>, <span class="pseudo-variable">ρ</span>)
+        <span class="pseudo-variable">Pt+1</span> <span class="pseudo-operator">=</span> <span class="pseudo-variable">Pt+1</span> ∪ <span class="pseudo-variable">Chosen</span>
+<span class="pseudo-keyword">return</span> <span class="pseudo-function">F1</span>(<span class="pseudo-variable">P_T</span>)</code></pre>
+                        
+                        <h3 class="text-2xl font-semibold text-slate-700 pt-4">使用实践：优缺点</h3>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                                <h4 class="font-bold text-green-800">优点</h4>
+                                <ul class="list-disc list-inside text-green-700 mt-2">
+                                    <li>在高维目标空间 ($M \ge 4$) 中能保持良好的多样性和收敛性。</li>
+                                    <li>选择压力稳定，不易受支配失效影响。</li>
+                                    <li>参考点/方向具有可解释性，可用于引导算法朝向感兴趣的区域。</li>
+                                </ul>
+                            </div>
+                            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                                <h4 class="font-bold text-red-800">缺点</h4>
+                                <ul class="list-disc list-inside text-red-700 mt-2">
+                                    <li>性能对<strong>归一化</strong>方法的选择较为敏感。</li>
+                                    <li>对<strong>参考点的设计</strong>和布局敏感，当前沿形状不规则或退化时，需要适配参考点布局才能获得好效果。</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="mt-12 pt-8 border-t border-slate-200 flex justify-between">
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="nsga2">← 上一节：NSGA-II</a>
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="summary">下一节：对比小结 →</a>
+                    </div>
+                </div>
+            </section>
+
+            <section id="summary" class="content-section">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">对比小结</h2>
+                    <p class="text-xl text-blue-600 mb-8">一图看懂 NSGA 家族的进化</p>
+                    <div class="overflow-x-auto">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th class="w-1/4">维度</th>
+                                    <th class="w-1/4">NSGA-I</th>
+                                    <th class="w-1/4">NSGA-II</th>
+                                    <th class="w-1/4">NSGA-III</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>提出年份</strong></td>
+                                    <td>1994/1995</td>
+                                    <td>2002</td>
+                                    <td>2014</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>排序复杂度</strong></td>
+                                    <td>常见表述为 $O(MN^3)$</td>
+                                    <td>$O(MN^2)$</td>
+                                    <td>$O(MN^2)$ + 关联操作</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>多样性机制</strong></td>
+                                    <td>共享函数 (需调 $\sigma_{\text{share}}$)</td>
+                                    <td>拥挤距离 (免参数)</td>
+                                    <td>参考点/方向 (免参数, 但需构造)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>精英策略</strong></td>
+                                    <td>无</td>
+                                    <td>有 (父子合并)</td>
+                                    <td>有 (同 II)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>核心适用场景</strong></td>
+                                    <td>奠基思想，已较少直接使用</td>
+                                    <td>2–3 目标 (强力基线)</td>
+                                    <td>4–15 目标 (many-objective)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-12 pt-8 border-t border-slate-200 flex justify-between">
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="nsga3">← 上一节：NSGA-III</a>
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="tuning">下一节：工程与调参 →</a>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="tuning" class="content-section">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">工程落地与调参指南</h2>
+                    <p class="text-xl text-blue-600 mb-8">从理论到实践</p>
+                    <div class="space-y-8 text-slate-600 leading-relaxed">
+
+                        <div>
+                            <h3 class="text-xl font-semibold text-slate-700 mb-2">何时用哪一个？</h3>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong>NSGA-II</strong>：当目标数 $M \le 3$ 时，它是首选。如果你需要一个稳健、快速、易于实现的基线算法，或者要与其他研究进行复现对比，NSGA-II 是不二之选。</li>
+                                <li><strong>NSGA-III</strong>：当目标数 $M \ge 4$ 时，应切换到 NSGA-III。特别是在强调解集在整个 Pareto 前沿上的<strong>均匀覆盖度</strong>，或需要引入<strong>偏好方向</strong>来引导搜索时，NSGA-III 的优势会非常明显。</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xl font-semibold text-slate-700 mb-2">遗传算子（连续变量常用）</h3>
+                            <p>对于连续优化问题，模拟二进制交叉 (SBX) 和多项式变异 (Polynomial Mutation) 是最常用的遗传算子组合。</p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong>SBX 交叉</strong>：交叉概率 $p_c \approx 0.9$，分布指数 $\eta_c \in [10, 20]$。$\eta_c$ 越大，产生的子代离父代越近。</li>
+                                <li><strong>多项式变异</strong>：变异概率 $p_m \approx 1/n_{\text{var}}$ (其中 $n_{\text{var}}$ 是决策变量的数量)，分布指数 $\eta_m \in [15, 25]$。$\eta_m$ 越大，变异扰动越小。</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xl font-semibold text-slate-700 mb-2">种群规模与参考点</h3>
+                             <ul class="list-disc list-inside space-y-2">
+                                <li><strong>NSGA-II</strong>：种群规模 $N$ 通常设置为几十到几百，随问题难度和决策变量维度增加而适当增大。常见的取值为 100。</li>
+                                <li><strong>NSGA-III</strong>：种群规模 $N$ 的设置与参考点数量 $P$ 密切相关。最佳实践是让 $N$ 约等于 $P$。参考点数量由公式 $P = \binom{H+M-1}{M-1}$ 确定。如果通过单层分割数 $H$ 难以得到合适的 $N$，可以采用“两层”参考点构造法（例如，组合 $H_1$ 和 $H_2$ 对应的参考点）来获得更灵活的种群规模。</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xl font-semibold text-slate-700 mb-2">约束处理（实用）</h3>
+                            <p>处理约束是实际应用中的常见需求。最经典和有效的方法是 Deb 提出的可行性规则 (Feasibility Rules)：</p>
+                             <ul class="list-disc list-inside space-y-2">
+                                <li>在比较两个解时，如果一个可行而另一个不可行，则可行解胜出。</li>
+                                <li>如果两个解都可行，则按标准选择逻辑（如支配关系、拥挤距离/参考点）进行比较。</li>
+                                <li>如果两个解都不可行，则约束违反度较小的那个解胜出。</li>
+                             </ul>
+                             <p class="mt-2">像 <code class="inline-code">pymoo</code> 和 <code class="inline-code">PlatEMO</code> 这样的成熟框架都内置了基于此规则的约束处理机制。</p>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-xl font-semibold text-slate-700 mb-2">实验与评估</h3>
+                             <ul class="list-disc list-inside space-y-2">
+                                <li><strong>终止条件</strong>：通常设置最大进化代数或最大函数评估次数 (FEs)。也可以监测性能指标 (如 IGD, HV) 的收敛情况，当指标在多代内变化不大时终止。</li>
+                                <li><strong>性能指标</strong>：
+                                    <ul class="list-circle list-inside ml-6 mt-2">
+                                        <li><strong>IGD (Inverted Generational Distance)</strong>：衡量算法找到的解集与真实 Pareto 前沿的接近程度和分布广度，是目前最主流的综合性指标。IGD+ 是其改进版本。</li>
+                                        <li><strong>HV (Hypervolume)</strong>：衡量解集覆盖的目标空间体积。理论性质好，但计算复杂度随目标数增加而指数级增长。</li>
+                                    </ul>
+                                </li>
+                                 <li><strong>科学复现</strong>：为了得到可靠的结论，需要进行多次（通常 20-30 次）独立的算法运行，每次使用不同的随机种子。最终结果应报告指标的均值和标准差，并进行显著性检验（如 Wilcoxon秩和检验）。</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="mt-12 pt-8 border-t border-slate-200 flex justify-between">
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="summary">← 上一节：对比小结</a>
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="code">下一节：代码示例 →</a>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="code" class="content-section">
                  <div class="max-w-4xl mx-auto">
-                    <h2 class="text-4xl md:text-5xl font-bold font-serif-sc text-slate-800 mb-4 leading-tight">数学语言</h2>
-                    <p class="text-xl md:text-2xl text-blue-600 mb-8">分类不确定性的表达</p>
-                    <div class="concept-box space-y-8">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">最小可运行示例</h2>
+                    <p class="text-xl text-blue-600 mb-8">使用 pymoo 和 PlatEMO 快速上手</p>
+                    <div class="space-y-8 text-slate-600 leading-relaxed">
+                        
                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">3.1 建模离散结果：分类分布</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">分类分布（Categorical Distribution）用于描述单次试验中 <span class="math-inline" data-expr="K"></span> 个可能离散结果的概率分布。在神经网络分类任务中，模型的直接输出（经过softmax激活后）就是一个分类分布的参数，即一个概率向量 <span class="math-inline" data-expr="p=[p_1, p_2, ..., p_K]"></span>。</p>
+                            <h3 class="text-2xl font-semibold text-slate-700 mb-2">Python (pymoo)</h3>
+                            <p>Pymoo 是一个功能强大且灵活的 Python 多目标优化框架。安装：<code class="inline-code">pip install pymoo</code></p>
+                            
+                            <h4 class="text-lg font-semibold text-slate-600 mt-4 mb-2">(a) NSGA-II 解 ZDT1 (2 目标)</h4>
+                            <pre class="code-block mt-4"><code class="language-python">from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.problems import get_problem
+from pymoo.optimize import minimize
+from pymoo.termination import get_termination
+
+# 获取经典的 ZDT1 测试问题 (30维决策变量, 2个目标)
+problem = get_problem("zdt1")
+
+# 初始化 NSGA-II 算法，种群大小为 100
+algorithm = NSGA2(pop_size=100)
+
+# 执行优化
+res = minimize(problem,
+               algorithm,
+               termination=get_termination("n_gen", 250), # 终止条件：250代
+               seed=1,
+               verbose=True)
+
+# 结果存储在 res 对象中
+# res.X: 找到的 Pareto 最优解集 (决策空间)
+# res.F: 对应的 Pareto 前沿 (目标空间)
+print("Decision Variables (X):", res.X)
+print("Objective Values (F):", res.F)
+</code></pre>
+
+                            <h4 class="text-lg font-semibold text-slate-600 mt-6 mb-2">(b) NSGA-III 解 DTLZ2 (8 目标)</h4>
+                            <pre class="code-block mt-4"><code class="language-python">from pymoo.algorithms.moo.nsga3 import NSGA3
+from pymoo.util.ref_dirs import get_reference_directions
+from pymoo.problems import get_problem
+from pymoo.optimize import minimize
+
+M = 8 # 目标数量
+
+# 生成参考方向 (Das-Dennis 方法)
+# 对于8目标，H=3时参考点数为 C(3+8-1, 8-1) = 120
+ref_dirs = get_reference_directions("das-dennis", M, n_points=120)
+
+# 获取 DTLZ2 测试问题 (14维决策变量, 8个目标)
+problem = get_problem("dtlz2", n_var=14, n_obj=M)
+
+# 初始化 NSGA-III 算法，种群大小等于参考点数量
+algorithm = NSGA3(pop_size=len(ref_dirs), ref_dirs=ref_dirs)
+
+# 执行优化
+res = minimize(problem,
+               algorithm,
+               ("n_gen", 400), # 终止条件：400代
+               seed=2,
+               verbose=True)
+</code></pre>
+                            
+                             <h4 class="text-lg font-semibold text-slate-600 mt-6 mb-2">(c) 自定义有约束问题</h4>
+                            <pre class="code-block mt-4"><code class="language-python">import numpy as np
+from pymoo.core.problem import ElementwiseProblem
+from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.optimize import minimize
+
+# 自定义一个问题类
+class MyConstrainedMOP(ElementwiseProblem):
+    def __init__(self):
+        super().__init__(n_var=5, n_obj=3, n_constr=2,
+                         xl=np.zeros(5), xu=np.ones(5))
+
+    def _evaluate(self, x, out, *args, **kwargs):
+        f1 = x[0]
+        f2 = 1.0 - x[1]
+        f3 = np.sum((x - 0.5)**2)
+        
+        # 约束 g(x) <= 0
+        g1 = x[0] + x[1] - 1.2
+        g2 = 0.3 - x[2]
+        
+        out["F"] = np.array([f1, f2, f3])
+        out["G"] = np.array([g1, g2])
+
+problem = MyConstrainedMOP()
+algorithm = NSGA2(pop_size=120)
+
+# Pymoo 会自动处理约束
+res = minimize(problem, algorithm, ("n_gen", 300), seed=3, verbose=True)
+</code></pre>
                         </div>
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">3.2 建模概率的不确定性：深入狄利克雷分布</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">为了量化对预测 <span class="math-inline" data-expr="p"></span> 的确定性，我们需要一个“关于分布的分布”——狄利克雷分布（Dirichlet Distribution）。从狄利克雷分布中抽取的每一个样本，其本身就是一个合法的概率向量。其概率密度函数由一个正值向量 <span class="math-inline" data-expr="\alpha=(\alpha_1, ..., \alpha_K)"></span> 参数化，这个向量被称为<strong>集中度参数</strong>。</p>
+
+                        <div class="pt-6">
+                            <h3 class="text-2xl font-semibold text-slate-700 mb-2">MATLAB (PlatEMO)</h3>
+                            <p>PlatEMO 是一个非常流行的 MATLAB 多目标优化平台，集成了大量算法和测试问题，并提供了强大的可视化和数据分析工具。使用前需要先将其路径添加到 MATLAB 中：<code class="inline-code">addpath(genpath('PlatEMO'))</code>。</p>
+                            
+                            <h4 class="text-lg font-semibold text-slate-600 mt-4 mb-2">(a) NSGA-II 跑 ZDT1</h4>
+                            <pre class="code-block mt-4"><code class="language-matlab">% 使用 main 函数接口调用算法
+main('-algorithm', @NSGAII, ...
+     '-problem',   @ZDT1, ...
+     '-N',         100, ...      % 种群大小
+     '-maxFE',     25000);     % 最大函数评估次数
+</code></pre>
+
+                            <h4 class="text-lg font-semibold text-slate-600 mt-6 mb-2">(b) NSGA-III 跑 DTLZ2 (8 目标)</h4>
+                            <pre class="code-block mt-4"><code class="language-matlab">main('-algorithm', @NSGAIII, ...
+     '-problem',   @DTLZ2, ...
+     '-N',         120, ...     % 种群大小 (匹配参考点)
+     '-M',         8, ...       % 目标数
+     '-D',         14, ...      % 决策变量维度
+     '-maxFE',     80000);
+</code></pre>
+                            <p class="mt-4">PlatEMO 会自动运行算法并生成结果图，包括 Pareto 前沿、性能指标曲线等，非常适合用于学术研究和论文作图。</p>
                         </div>
-                        <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">3.3 集中度参数 <span class="math-inline" data-expr="\alpha"></span> 的直观理解：“伪计数”证据</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">狄利克雷分布的参数 <span class="math-inline" data-expr="\alpha"></span> 有一个非常直观的解释：<strong>伪计数（pseudocounts）</strong>。我们可以将 <span class="math-inline" data-expr="\alpha_c"></span> 想象成在观测任何真实数据之前，我们“幻象中”已经观测到的类别 <span class="math-inline" data-expr="c"></span> 的样本数量。当观测到真实数据后，贝叶斯更新只需将真实计数加到伪计数上即可：<span class="math-inline" data-expr="\alpha_{\text{posterior}} = \alpha_{\text{prior}} + \text{counts}_{\text{data}}"></span>。</p>
-                            <p class="mt-4 text-lg leading-relaxed text-slate-600"><span class="math-inline" data-expr="\alpha"></span> 向量的数值和相对大小直接决定了不确定性的形态：</p>
-                            <ul class="mt-4 space-y-3 list-disc list-inside text-lg text-slate-600">
-                                <li>当所有 <span class="math-inline" data-expr="\alpha_c > 1"></span> 时，分布的概率质量会集中，代表模型比较确定。所有参数的总和 <span class="math-inline" data-expr="\alpha_0 = \sum \alpha_c"></span> 越大，分布越尖锐，表示认知不确定性越低。</li>
-                                <li>当所有 <span class="math-inline" data-expr="\alpha_c = 1"></span> 时，分布是均匀的，代表了最大的不确定性，即一个“无信息”的平坦先验。</li>
-                            </ul>
-                            <p class="mt-4 text-lg leading-relaxed text-slate-600">这为PostNet的学习过程提供了明确的数学目标：对ID样本预测出尖锐的后验分布，对OOD样本预测出平坦的后验分布。</p>
-                        </div>
+
                     </div>
-                 </div>
-            </section>
-            
-            <section id="section-arch" class="content-section">
-                <div class="max-w-4xl mx-auto">
-                    <h2 class="text-4xl md:text-5xl font-bold font-serif-sc text-slate-800 mb-4 leading-tight">架构解析</h2>
-                    <p class="text-xl md:text-2xl text-blue-600 mb-8">后验网络 (PostNet) 的内部构造</p>
-                     <div class="concept-box space-y-8">
-                        <p class="text-lg leading-relaxed text-slate-600">PostNet通过将一个固定的先验参数 <span class="math-inline" data-expr="\beta_{\text{prior}}"></span> 与一个由输入 <span class="math-inline" data-expr="x^{(i)}"></span> 决定的学习到的伪计数 <span class="math-inline" data-expr="\beta^{(i)}"></span> 相加，来形成最终的后验狄利克雷参数 <span class="math-inline" data-expr="\alpha^{(i)} = \beta_{\text{prior}} + \beta^{(i)}"></span>。这一过程由两个关键组件协同完成。</p>
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">4.1 组件一：编码器网络与维度灾难</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">PostNet的第一个组件是一个编码器神经网络 <span class="math-inline" data-expr="f_{\theta}"></span>，其作用是将高维的输入数据 <span class="math-inline" data-expr="x^{(i)}"></span>（如图像）映射到一个低维的潜在向量 <span class="math-inline" data-expr="z^{(i)}"></span>。这个降维步骤至关重要，因为它直接解决了密度估计中的核心难题——<strong>维度灾难</strong>。在低维空间进行密度估计，是使PostNet方法切实可行的关键。</p>
-                        </div>
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">4.2 组件二：密度估计器——归一化流</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">在低维潜在空间中，PostNet需要一个强大的工具来估计每个类别的概率密度 <span class="math-inline" data-expr="P(z|c)"></span>。为此，它采用了<strong>归一化流（Normalizing Flows, NFs）</strong>。归一化流通过一系列可逆变换，将一个简单的基础分布（如高斯分布）“扭曲”成一个复杂的目标数据分布。其核心优势在于，我们可以利用数学中的<strong>变量替换公式</strong>来精确计算任意数据点在目标分布下的概率密度。</p>
-                        </div>
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">4.3 为何“归一化”密度是OOD检测的秘诀</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">PostNet成功的关键在于它使用的 <span class="math-inline" data-expr="P(z|c; \phi)"></span> 是一个<strong>严格归一化</strong>的概率密度函数，即其在整个潜在空间上的积分为1。这可以理解为一个“概率预算”的限制。为了在ID数据所在的区域分配高密度，它必须在其他区域分配低密度。这样，当一个OOD样本被映射到远离所有已知类别高密度区域的潜在空间位置时，其密度值自然会趋近于零。这种机制从数学上强制模型表现出“谦逊”，是PostNet能够在不依赖OOD训练样本的情况下，有效识别未知输入的根本原因。</p>
-                            <div class="overflow-x-auto">
-                                <h4 class="text-xl font-semibold my-4 text-slate-700">表1：潜在空间密度估计器对比</h4>
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>特性</th>
-                                            <th>高斯混合模型 (MoG)</th>
-                                            <th>归一化流 (Normalizing Flows)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>表达能力</td>
-                                            <td>有限。难以拟合拓扑结构复杂的数据分布。</td>
-                                            <td><strong>极高</strong>。理论上可以逼近任意连续分布。</td>
-                                        </tr>
-                                        <tr>
-                                            <td>似然计算</td>
-                                            <td>可 tractable 计算。</td>
-                                            <td>可 tractable <strong>精确</strong>计算，这是其核心优势。</td>
-                                        </tr>
-                                         <tr>
-                                            <td>论文中性能</td>
-                                            <td>性能尚可，但在实践中表现出更多不稳定性。</td>
-                                            <td><strong>性能更优</strong>，通常取得更好的分数。</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            
-            <section id="section-engine" class="content-section">
-                <div class="max-w-4xl mx-auto">
-                    <h2 class="text-4xl md:text-5xl font-bold font-serif-sc text-slate-800 mb-4 leading-tight">数学引擎</h2>
-                    <p class="text-xl md:text-2xl text-blue-600 mb-8">PostNet核心公式逐步推导</p>
-                    <div class="concept-box space-y-8">
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">5.1 从真实数据到“伪观测”：公式(3)的飞跃</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">PostNet的核心创新在于为每个输入 <span class="math-inline" data-expr="x^{(i)}"></span> 进行独立、动态的贝叶斯更新。公式(3)体现了这一转变：</p>
-                            <div class="math-block" data-expr="P(p^{(i)}|\{\tilde{y}^{(j)}\}_{j^{(i)}}) \propto P(\{\tilde{y}^{(j)}\}_{j^{(i)}}|p^{(i)}) \times P(p^{(i)})"></div>
-                            <p class="mt-4 text-lg leading-relaxed text-slate-600">这里的关键是引入了<strong>伪观测集</strong> <span class="math-inline" data-expr="\{\tilde{y}^{(j)}\}"></span> 的概念。对于每一个输入 <span class="math-inline" data-expr="x^{(i)}"></span>，模型会“想象”或“预测”出一组虚拟的观测样本。这些伪观测的数量和类别分布，共同构成了对当前输入的“证据”。</p>
-                        </div>
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">5.2 证据的计算：伪计数公式(4)的精解</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">这些伪观测的“证据”是如何量化的呢？这由论文中最核心的公式(4)给出：</p>
-                            <div class="math-block" data-expr="\beta_c^{(i)} = N_c \cdot P(z^{(i)}|c; \phi)"></div>
-                            <p class="mt-4 text-lg leading-relaxed text-slate-600">这个公式优雅地结合了两方面的信息来计算类别 <span class="math-inline" data-expr="c"></span> 的伪计数 <span class="math-inline" data-expr="\beta_c^{(i)}"></span>：</p>
-                             <ul class="mt-4 space-y-3 list-disc list-inside text-lg text-slate-600">
-                                <li><span class="math-inline" data-expr="N_c"></span> (类别先验知识): 训练数据中类别 <span class="math-inline" data-expr="c"></span> 的真实样本总数。</li>
-                                 <li><span class="math-inline" data-expr="P(z^{(i)}|c; \phi)"></span> (特定证据): 输入 <span class="math-inline" data-expr="x^{(i)}"></span> 的潜在表示 <span class="math-inline" data-expr="z^{(i)}"></span> 与类别 <span class="math-inline" data-expr="c"></span> 的“匹配程度”。</li>
-                            </ul>
-                        </div>
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">5.3 预测行为的显微镜：均值预测公式(5)全解析</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">有了后验参数 <span class="math-inline" data-expr="\alpha^{(i)} = \beta_{\text{prior}} + \beta^{(i)}"></span>，我们可以计算出模型对类别概率的期望预测值。公式(5)揭示了PostNet在面对不同类型数据时的动态行为。</p>
-                            <div class="math-block" data-expr="\mathbb{E}_{p \sim \text{Dir}(\alpha^{(i)})}[p_c] = \frac{\beta_c^{\text{prior}} + N \cdot P(c|z^{(i)};\phi) \cdot P(z^{(i)};\phi)}{\sum_c \beta_c^{\text{prior}} + N \cdot P(z^{(i)};\phi)}"></div>
-                            <h4 class="text-xl font-semibold text-slate-700 mt-6 mb-2">5.3.1 极限情况1：分布内数据 (密度 <span class="math-inline" data-expr="\to \infty"></span>)</h4>
-                            <p class="text-lg leading-relaxed text-slate-600">当输入是一个非常典型的ID样本时，其总密度 <span class="math-inline" data-expr="P(z^{(i)}; \phi)"></span> 会非常大。此时，先验项可以被忽略，公式近似为：<span class="math-inline" data-expr="\mathbb{E}[p_c] \approx P(c|z^{(i)}; \phi)"></span>。这意味着，对于熟悉的ID数据，模型的预测概率会收敛到真实的类别后验概率，表现出高置信度，认知不确定性消失。</p>
-                            <h4 class="text-xl font-semibold text-slate-700 mt-6 mb-2">5.3.2 极限情况2：分布外数据 (密度 <span class="math-inline" data-expr="\to 0"></span>)</h4>
-                             <p class="text-lg leading-relaxed text-slate-600">当输入是一个OOD样本时，其总密度 <span class="math-inline" data-expr="P(z^{(i)}; \phi)"></span> 会趋近于零。此时，数据驱动项可以被忽略，公式退化为：<span class="math-inline" data-expr="\mathbb{E}[p_c] \approx \beta_c^{\text{prior}} / \sum_c \beta_c^{\text{prior}}"></span>。如果设置一个平坦的先验（例如 <span class="math-inline" data-expr="\beta_c^{\text{prior}} = 1"></span>），那么预测概率将收敛到一个均匀分布 <span class="math-inline" data-expr="1/C"></span>。这意味着模型会优雅地“承认无知”，表现出极高的认知不确定性。</p>
-                            <div class="overflow-x-auto">
-                               <h4 class="text-xl font-semibold my-4 text-slate-700">表2：PostNet预测与不确定性的渐进行为</h4>
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>输入类型</th>
-                                            <th>主导项</th>
-                                            <th>收敛的均值预测 <span class="math-inline" data-expr="\mathbb{E}[p_c]"></span></th>
-                                            <th>认知不确定性</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>分布内 (ID)</td>
-                                            <td>数据驱动项 (<span class="math-inline" data-expr="N \cdot P(z)"></span>)</td>
-                                            <td><span class="math-inline" data-expr="P(c|z)"></span> (真实后验)</td>
-                                            <td>趋近于0</td>
-                                        </tr>
-                                         <tr>
-                                            <td>分布外 (OOD)</td>
-                                            <td>先验项 (<span class="math-inline" data-expr="\beta^{\text{prior}}"></span>)</td>
-                                            <td><span class="math-inline" data-expr="1/C"></span> (均匀分布)</td>
-                                            <td>趋近于最大值</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                    <div class="mt-12 pt-8 border-t border-slate-200 flex justify-between">
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="tuning">← 上一节：工程与调参</a>
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="pitfalls">下一节：常见问题 →</a>
                     </div>
                 </div>
             </section>
             
-            <section id="section-training" class="content-section">
-                <div class="max-w-4xl mx-auto">
-                    <h2 class="text-4xl md:text-5xl font-bold font-serif-sc text-slate-800 mb-4 leading-tight">训练机制</h2>
-                    <p class="text-xl md:text-2xl text-blue-600 mb-8">推导不确定性感知损失函数</p>
-                    <div class="concept-box space-y-8">
-                        <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">6.1 从通用贝叶斯原则到具体目标 (公式6)</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">PostNet的损失函数源于一个普适的贝叶斯损失框架，旨在平衡两个目标：<strong>最小化期望损失</strong>（驱动模型做出准确预测）和<strong>最大化熵</strong>（鼓励模型在没有充分证据时，避免过度自信）。</p>
-                        </div>
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">6.2 PostNet的最终损失函数 (公式7)</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">PostNet将上述框架具体化，得到了其最终优化目标：</p>
-                            <div class="math-block" data-expr="\mathcal{L} = \frac{1}{N} \sum_i^N (\underbrace{\mathbb{E}_{q(p^{(i)})}[\text{CE}(p^{(i)}, y^{(i)})]}_{\text{(1) 不确定交叉熵 (UCE)}} - \underbrace{H(q^{(i)})}_{\text{(2) 熵正则化}})"></div>
-                             <ol class="mt-4 list-decimal list-inside space-y-3 text-lg text-slate-600">
-                                <li><strong>不确定交叉熵 (UCE):</strong> 计算交叉熵损失在整个后验分布上的期望值。它驱动模型对观测到的ID数据做出高置信度的正确预测。</li>
-                                <li><strong>熵正则化项:</strong> 惩罚过度自信，偏好熵值更高、更平滑的后验分布。这对于OOD检测至关重要，因为它鼓励模型在面对未知输入时，主动地增加其预测的不确定性。</li>
-                            </ol>
-                        </div>
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">6.3 计算优势：闭式解 (公式10 & 11)</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">PostNet的一个显著工程优势在于，其看似复杂的损失函数拥有<strong>闭式解（closed-form solution）</strong>，无需依赖昂贵的采样来近似计算。这与Dropout或深度集成等方法形成鲜明对比。如论文附录所示，损失函数的两个部分都可以通过Digamma函数 <span class="math-inline" data-expr="\Psi(x)"></span> 和对数贝塔函数 <span class="math-inline" data-expr="\log B(\alpha)"></span> 精确计算出来。</p>
-                            <div class="math-block" data-expr="\mathbb{E}_{q(p^{(i)})}[\text{CE}(p^{(i)}, y^{(i)})] = \Psi(\alpha_0^{(i)}) - \Psi(\alpha_{c^*}^{(i)})"></div>
-                            <div class="math-block" data-expr="H(q^{(i)}) = \log B(\alpha^{(i)}) + (\alpha_0^{(i)} - C)\Psi(\alpha_0^{(i)}) - \sum_c (\alpha_c^{(i)} - 1)\Psi(\alpha_c^{(i)})"></div>
-                            <p class="mt-4 text-lg leading-relaxed text-slate-600">这种理论上的优雅与工程上的高效相结合，使PostNet成为一个既有坚实理论基础又具备实际应用价值的强大模型。</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            
-            <section id="section-interactive" class="content-section">
-                <div class="max-w-4xl mx-auto">
-                    <h2 class="text-4xl md:text-5xl font-bold font-serif-sc text-slate-800 mb-4 leading-tight">交互演示</h2>
-                    <p class="text-xl md:text-2xl text-blue-600 mb-8">亲手感受不确定性</p>
-                    <p class="text-lg mb-6 leading-relaxed text-slate-600">理论学习完毕，我们来亲手实践。下面是一个简化的二维分类场景。空间中有三个类别的数据（红、绿、蓝点）。你可以<strong>在画布的任意位置点击</strong>，来模拟一个新的数据点。观察右侧图表的变化，体验PostNet的核心思想：</p>
-                    <div class="concept-box">
-                        <div class="grid md:grid-cols-2 gap-8 items-center">
-                            <div>
-                                <h4 class="text-xl font-semibold text-center mb-2 text-slate-700">点击下方空间进行测试</h4>
-                                <canvas id="interactive-canvas" class="interactive-canvas w-full aspect-square"></canvas>
-                            </div>
-                            <div>
-                                 <h4 id="result-title" class="text-xl font-semibold text-center mb-2 text-slate-700">模型预测结果</h4>
-                                 <div class="chart-container h-64">
-                                    <canvas id="prediction-chart"></canvas>
-                                 </div>
-                                 <div class="mt-6">
-                                    <h4 class="text-xl font-semibold text-center mb-2 text-slate-700">认知不确定性得分</h4>
-                                    <div class="w-full bg-slate-200 rounded-full h-8">
-                                        <div id="uncertainty-bar" class="bg-blue-600 h-8 rounded-full text-center text-white font-bold flex items-center justify-center transition-all duration-300" style="width: 0%;">0%</div>
-                                    </div>
-                                    <p id="explanation-text" class="text-center mt-2 text-slate-500 text-base h-10">点击左侧画布开始。</p>
-                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            
-            <section id="section-synthesis" class="content-section">
+            <section id="pitfalls" class="content-section">
                  <div class="max-w-4xl mx-auto">
-                    <h2 class="text-4xl md:text-5xl font-bold font-serif-sc text-slate-800 mb-4 leading-tight">综合与意义</h2>
-                    <p class="text-xl md:text-2xl text-blue-600 mb-8">PostNet的范式革命</p>
-                     <div class="concept-box space-y-8">
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">8.1 背景：先验网络 (Prior Networks) 的局限性</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">要充分理解PostNet的贡献，需要将其置于其前身——<strong>先验网络（Prior Networks, PN）</strong>的背景下审视。PN同样旨在量化不确定性，但其依赖OOD数据进行训练，且无法泛化到“未知的OOD数据”。其本质是一种判别式方法，学习区分“已知的ID”和“已知的OOD”。</p>
-                        </div>
-                         <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">8.2 PostNet范式：无需OOD数据的稳健不确定性</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">PostNet通过一种根本性的范式转换解决了PN的问题。它采用的是一种<strong>生成式方法</strong>。PostNet不学习如何“区分”ID和OOD，而是学习一个ID数据在潜在空间中的<strong>生成式密度模型</strong>。通过精确地学习“什么是ID数据”，它能够自然地将任何不符合该模型的输入识别为OOD。</p>
-                             <ul class="mt-4 space-y-3 list-disc list-inside text-lg text-slate-600">
-                                <li>它不再需要OOD样本进行训练，因为它从ID数据中学习了“正常”的定义。</li>
-                                <li>归一化密度函数的内在约束确保了在远离ID数据区域的地方，密度值必然会下降，从而自然地为OOD样本分配高不确定性。</li>
-                            </ul>
-                        </div>
-                          <div>
-                            <h3 class="text-2xl font-semibold text-slate-700 mb-4">8.3 结论与深远影响</h3>
-                            <p class="text-lg leading-relaxed text-slate-600">PostNet不仅在OOD检测和不确定性校准等任务上取得了当时最先进的成果，更重要的是，它提供了一个强大且可扩展的不确定性量化框架。该框架的核心设计模式——<strong>编码器降维 + 潜在空间归一化密度估计 + 贝叶斯更新</strong>——被证明具有普适性，并被后续工作成功推广到了回归、图数据等更广泛的领域。</p>
-                            <p class="mt-4 text-lg font-semibold leading-relaxed text-slate-600">PostNet的持久影响力不在于其具体的模型实现，而在于它所建立的那个优雅、高效且理论坚实的 conceptual framework。它为构建新一代“知其所不知”的、更值得信赖的AI系统开辟了一条清晰的道路。</p>
-                        </div>
-                     </div>
-                 </div>
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">常见坑与诊断</h2>
+                    <p class="text-xl text-blue-600 mb-8">避免新手常犯的错误</p>
+                    <div class="space-y-6 text-slate-600 leading-relaxed">
+                        <ol class="list-decimal list-inside space-y-4">
+                            <li>
+                                <strong>NSGA-II 拥挤距离边界保护</strong>:
+                                一个常见的实现错误是忘记将每个目标上的边界解（最小值和最大值对应的解）的拥挤距离设置为无穷大。这个操作至关重要，因为它能确保 Pareto 前沿的边界点不会在选择过程中因为拥挤距离计算为0而被意外淘汰，从而保证解集的延展性。
+                            </li>
+                            <li>
+                                <strong>NSGA-III 归一化不稳</strong>:
+                                NSGA-III 的性能高度依赖于归一化。当种群尚未充分收敛时，通过极值点构造的超平面可能会不稳定，导致截距异常（例如为0或负数）。这会严重干扰后续的关联和选择。好的框架会包含“备用方案”，例如当归一化失败时，回退到基于当前种群最大/最小值的简单缩放，以增加算法的鲁棒性。
+                            </li>
+                            <li>
+                                <strong>参考点不匹配</strong>:
+                                参考点的数量 $P$ 和种群规模 $N$ 需要合理匹配。如果 $P$ 远小于 $N$，会导致多个解竞争少数几个参考方向，多样性维持效果差；如果 $P$ 远大于 $N$，很多参考方向上将没有解，造成计算资源浪费。最佳实践是让 $N$ 略大于或等于 $P$，并根据 Pareto 前沿的形状选择合适的参考点生成策略。
+                            </li>
+                             <li>
+                                <strong>高维指标选择</strong>:
+                                Hypervolume (HV) 是一个优秀的指标，但其计算复杂度随目标数 $M$ 指数增长。当 $M > 5$ 时，精确计算 HV 会变得非常耗时，甚至成为实验瓶颈。在这种情况下，IGD 或 IGD+ 是更高效和稳定的替代选择。如果必须使用 HV，可以考虑使用其蒙特卡洛近似计算方法。
+                            </li>
+                             <li>
+                                <strong>算子参数选择</strong>:
+                                遗传算子的分布指数 $\eta_c$ 和 $\eta_m$ 对搜索行为影响很大。设置过小（如 < 5）会导致搜索过于“激进”，产生的子代与父代差异很大，可能破坏已有的优良结构，不利于维持前沿的平滑；设置过大（如 > 50）则会导致搜索过于“温和”，收敛速度慢。通常从 $\eta_c = 15, \eta_m = 20$ 开始尝试是一个不错的起点。
+                            </li>
+                             <li>
+                                <strong>强约束或窄可行域</strong>:
+                                当问题的可行域非常小或被强约束包围时，算法可能很难找到可行的初始解。在这种情况下，优先使用 Deb 可行性规则是标准做法。同时，可以在算法早期适当增大多项式变异的概率或减小其分布指数，以鼓励更广泛的探索，帮助种群跳出不可行区域的“陷阱”。
+                            </li>
+                        </ol>
+                    </div>
+                    <div class="mt-12 pt-8 border-t border-slate-200 flex justify-between">
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="code">← 上一节：代码示例</a>
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="extensions">下一节：扩展阅读 →</a>
+                    </div>
+                </div>
             </section>
+            
+            <section id="extensions" class="content-section">
+                 <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">扩展与相关算法 (选读)</h2>
+                    <p class="text-xl text-blue-600 mb-8">了解多目标优化领域的其他重要思想</p>
+                    <div class="space-y-6 text-slate-600 leading-relaxed">
+                        <p>NSGA 系列是基于 Pareto 支配的代表，但多目标优化领域还有其他重要的算法流派。了解它们有助于拓宽视野，并在特定问题上选择更合适的工具。</p>
+                        <ul class="list-disc list-inside space-y-4">
+                            <li>
+                                <strong>R-NSGA-II/III (Reference-point based NSGA)</strong>:
+                                这是 NSGA-II 和 NSGA-III 的扩展版本，允许用户提供偏好信息。通过指定感兴趣的参考点或区域，算法会在进化过程中偏向于搜索这些区域的解，适用于决策者有先验知识或特定需求的场景。
+                            </li>
+                            <li>
+                                <strong>MOEA/D (Multiobjective Evolutionary Algorithm based on Decomposition)</strong>:
+                                分解法是与 NSGA-III 并列的高维多目标优化主流方法。它的核心思想是将一个 MOP 分解成一组标量（单目标）子问题，然后协同进化一个种群来同时优化这些子问题。每个子问题对应一个权重向量，这与 NSGA-III 的参考方向在理念上相通，但实现机制完全不同。MOEA/D 在聚合函数选择和邻域更新策略上有很多变种。
+                            </li>
+                             <li>
+                                <strong>RVEA (Reference Vector Guided Evolutionary Algorithm)</strong>:
+                                RVEA 也是一种基于参考向量的高维多目标优化算法。与 NSGA-III 不同的是，它的参考向量是自适应调整的。算法会根据当前种群的分布情况动态地调整参考向量，使其更好地匹配 Pareto 前沿的形状，特别适用于前沿形状不规则或退化的问题。
+                            </li>
+                             <li>
+                                <strong>SPEA2 (Strength Pareto Evolutionary Algorithm 2)</strong>:
+                                SPEA2 是另一个经典的基于 Pareto 支配的算法。它通过为每个个体计算一个“强度值”（它支配的解的数量）和一个“原始适应度”（支配它的解的强度之和）来评估个体优劣。它还使用了一种截断技术来维护固定大小的精英存档，多样性维持则通过k-近邻法实现。
+                            </li>
+                             <li>
+                                <strong>SMS-EMOA (S-Metric Selection Evolutionary Multiobjective Optimization Algorithm)</strong>:
+                                这是一种基于指标（特别是超体积 HV）的算法。在每一代，它会选择那个对整个种群 HV 贡献最小的个体进行淘汰。这种直接优化 HV 的方式理论上能得到很好的分布，但由于 HV 计算成本高，通常只适用于目标数和种群规模较小的场景。
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="mt-12 pt-8 border-t border-slate-200 flex justify-between">
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="pitfalls">← 上一节：常见问题</a>
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="quickstart">下一节：快速上手 →</a>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="quickstart" class="content-section">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">快速上手清单</h2>
+                    <p class="text-xl text-blue-600 mb-8">一份即用的实验设置检查表</p>
+                    <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 space-y-4">
+                        <div class="flex items-start">
+                            <span class="text-blue-500 font-bold text-2xl mr-4">1.</span>
+                            <div>
+                                <h4 class="font-semibold text-slate-800">选择基线算法</h4>
+                                <p class="text-slate-600">在 ZDT1/2 (2 目标) 问题上使用 <strong>NSGA-II</strong>。在 DTLZ2 (例如 8 目标) 问题上使用 <strong>NSGA-III</strong>。</p>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-200 my-3"></div>
+                        <div class="flex items-start">
+                            <span class="text-blue-500 font-bold text-2xl mr-4">2.</span>
+                            <div>
+                                <h4 class="font-semibold text-slate-800">设置默认算子参数</h4>
+                                <p class="text-slate-600">SBX 交叉: $p_c = 0.9, \eta_c = 15$</p>
+                                <p class="text-slate-600">多项式变异: $p_m = 1/n_{\text{var}}, \eta_m = 20$</p>
+                            </div>
+                        </div>
+                         <div class="border-t border-slate-200 my-3"></div>
+                        <div class="flex items-start">
+                            <span class="text-blue-500 font-bold text-2xl mr-4">3.</span>
+                            <div>
+                                <h4 class="font-semibold text-slate-800">设定种群规模</h4>
+                                <p class="text-slate-600"><strong>NSGA-II</strong>: $N = 100 \sim 200$</p>
+                                <p class="text-slate-600"><strong>NSGA-III</strong>: 让 $N$ 约等于参考点数 $P(H,M)$</p>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-200 my-3"></div>
+                        <div class="flex items-start">
+                            <span class="text-blue-500 font-bold text-2xl mr-4">4.</span>
+                            <div>
+                                <h4 class="font-semibold text-slate-800">选择性能指标</h4>
+                                <p class="text-slate-600">主要指标使用 <strong>IGD / IGD+</strong>，辅助指标使用 <strong>HV</strong> (如果计算成本可接受)。</p>
+                            </div>
+                        </div>
+                         <div class="border-t border-slate-200 my-3"></div>
+                        <div class="flex items-start">
+                            <span class="text-blue-500 font-bold text-2xl mr-4">5.</span>
+                            <div>
+                                <h4 class="font-semibold text-slate-800">确保实验可复现</h4>
+                                <ul class="list-disc list-inside text-slate-600">
+                                    <li>运行 <strong>20–30 次</strong>独立的实验。</li>
+                                    <li>为每次运行<strong>固定随机种子</strong>。</li>
+                                    <li>记录总的<strong>函数评估次数 (FEs)</strong>作为计算成本。</li>
+                                    <li>保存最终的 Pareto 前沿、指标曲线和所有使用的超参数。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-12 pt-8 border-t border-slate-200 flex justify-between">
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="extensions">← 上一节：扩展阅读</a>
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="conclusion">下一节：尾声 →</a>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="conclusion" class="content-section">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">尾声</h2>
+                    <p class="text-xl text-blue-600 mb-8">思想的演进</p>
+                    <div class="space-y-6 text-slate-600 leading-relaxed">
+                        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-slate-500">
+                            <p class="text-lg"><strong>NSGA-I</strong> 带来了“让解在原始目标空间中彼此竞争”的核心范式，摆脱了对聚合函数的依赖。</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+                             <p class="text-lg"><strong>NSGA-II</strong> 通过快速排序、拥挤距离和精英策略，将这一范式打造成了一把高效、易用、稳健的“工程瑞士军刀”，成为了低维多目标优化的黄金标准。</p>
+                        </div>
+                         <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+                             <p class="text-lg"><strong>NSGA-III</strong> 则在高维多目标的挑战面前，创造性地引入参考点来重建选择压力与全局覆盖能力，成功将非支配排序的思想扩展到了 many-objective 领域。</p>
+                        </div>
+                        <p class="pt-4 text-lg font-medium text-slate-700">
+                            因此，当目标数不大时，优先使用 <strong>NSGA-II</strong>，因为它是一个稳健、快速且强大的基准。当目标数上升至 many-objective 领域时，请果断切换到 <strong>NSGA-III</strong>，并认真设计你的参考点与归一化策略。
+                        </p>
+                    </div>
+                    <div class="mt-12 pt-8 border-t border-slate-200 flex justify-between">
+                        <a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="quickstart">← 上一节：快速上手</a>
+                        <span class="bg-slate-100 text-slate-400 font-semibold py-2 px-4 rounded-lg cursor-not-allowed">下一节：无 →</span>
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
-
+    
     <footer class="text-center py-6 mt-auto border-t border-slate-200 bg-white">
         <p class="text-slate-500">
-            By
-            <a href="https://github.com/droggeljugLM" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">
-                droggeljug
+            NSGA 算法家族详解 by 
+            <a href="https://github.com/droggeljugLM" target="_blank" class="text-blue-600 hover:underline">
+                Droggeljug
             </a>
         </p>
     </footer>
 
+    <!-- Prism JS for Syntax Highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
     <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const navLinks = document.querySelectorAll('#table-of-contents .nav-link');
-        const contentSections = document.querySelectorAll('.content-section');
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('main-content');
-        let predictionChart = null;
-
-        function renderAllKatex() {
-            document.querySelectorAll('.math-inline:not([data-rendered])').forEach(el => {
-                katex.render(el.dataset.expr, el, { throwOnError: false, displayMode: false });
-                el.setAttribute('data-rendered', 'true');
-            });
-            document.querySelectorAll('.math-block:not([data-rendered])').forEach(el => {
-                katex.render(el.dataset.expr, el, { throwOnError: false, displayMode: true });
-                el.setAttribute('data-rendered', 'true');
-            });
-        }
-        
-        function initializePredictionChart() {
-            if (predictionChart) return;
-            const chartCanvas = document.getElementById('prediction-chart');
-            if (!chartCanvas) return;
+        document.addEventListener('DOMContentLoaded', function () {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
             
-            const clusters = [
-                { color: 'rgba(239, 68, 68, 0.7)', label: '类别 A' },
-                { color: 'rgba(34, 197, 94, 0.7)', label: '类别 B' },
-                { color: 'rgba(59, 130, 246, 0.7)', label: '类别 C' }
-            ];
+            function showSection(sectionId) {
+                contentSections.forEach(section => {
+                    section.style.display = 'none';
+                });
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                });
 
-            predictionChart = new Chart(chartCanvas, {
-                type: 'bar',
-                data: {
-                    labels: clusters.map(c => c.label),
-                    datasets: [{
-                        label: '预测概率',
-                        data: [1/3, 1/3, 1/3],
-                        backgroundColor: clusters.map(c => c.color.replace('0.7', '0.6')),
-                        borderColor: clusters.map(c => c.color),
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    scales: { x: { beginAtZero: true, max: 1.0, ticks: { callback: v => (v*100)+'%' } } },
-                    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                const targetSection = document.getElementById(sectionId);
+                const targetLink = document.querySelector(`a[href="#${sectionId}"]`);
+
+                if (targetSection) {
+                    targetSection.style.display = 'block';
+                    // Render KaTeX formulas when a section becomes visible
+                    renderMathInElement(targetSection, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$', right: '$', display: false},
+                        ],
+                        throwOnError: false
+                    });
+                    // Highlight all code blocks within the now-visible section
+                    Prism.highlightAllUnder(targetSection);
                 }
-            });
-        }
+                if (targetLink) {
+                    targetLink.classList.add('active');
+                }
+            }
 
-        function setupInteractiveCanvas() {
-            const canvas = document.getElementById('interactive-canvas');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            const uncertaintyBar = document.getElementById('uncertainty-bar');
-            const explanationText = document.getElementById('explanation-text');
-            const resultTitle = document.getElementById('result-title');
-
-            let width, height;
-            const dpi = window.devicePixelRatio || 1;
-            const clusters = [
-                { x: 0.25, y: 0.25, color: 'rgba(239, 68, 68, 0.7)', label: '类别 A' },
-                { x: 0.75, y: 0.35, color: 'rgba(34, 197, 94, 0.7)', label: '类别 B' },
-                { x: 0.5, y: 0.75, color: 'rgba(59, 130, 246, 0.7)', label: '类别 C' }
-            ];
-            const dataPoints = [];
-
-            const resizeCanvas = () => {
-                const parentWidth = canvas.parentElement.clientWidth;
-                width = parentWidth;
-                height = parentWidth;
-                canvas.width = width * dpi;
-                canvas.height = height * dpi;
-                canvas.style.width = `${width}px`;
-                canvas.style.height = `${height}px`;
-                ctx.scale(dpi, dpi);
-                generateDataPoints();
-                draw();
-            };
-
-            const generateDataPoints = () => {
-                dataPoints.length = 0;
-                clusters.forEach(c => {
-                    for (let i = 0; i < 30; i++) {
-                        dataPoints.push({
-                            x: c.x * width + (Math.random() - 0.5) * width * 0.2,
-                            y: c.y * height + (Math.random() - 0.5) * height * 0.2,
-                            color: c.color
-                        });
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const sectionId = this.getAttribute('href').substring(1);
+                    window.location.hash = sectionId;
+                    showSection(sectionId);
+                    mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+                    if (window.innerWidth < 768) {
+                        sidebar.classList.add('-translate-x-full');
                     }
                 });
-            };
-
-            const draw = () => {
-                ctx.clearRect(0, 0, width, height);
-                dataPoints.forEach(p => {
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
-                    ctx.fillStyle = p.color;
-                    ctx.fill();
+            });
+            
+            document.querySelectorAll('.page-nav-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.dataset.target;
+                    window.location.hash = targetId;
+                    showSection(targetId);
+                    mainContent.scrollTo({ top: 0, behavior: 'smooth' });
                 });
-            };
-
-            canvas.addEventListener('click', e => {
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                draw();
-                ctx.beginPath();
-                ctx.arc(x, y, 6, 0, 2 * Math.PI);
-                ctx.fillStyle = 'black';
-                ctx.fill();
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                updatePrediction(x, y);
             });
 
-            const updatePrediction = (x, y) => {
-                let distances = clusters.map(c => Math.sqrt(Math.pow(x-c.x*width, 2) + Math.pow(y-c.y*height, 2)));
-                let minDist = Math.min(...distances);
-                let closestCluster = distances.indexOf(minDist);
-                
-                const maxDist = width * 0.4;
-                const confidence = Math.max(0, 1 - Math.min(1, minDist / maxDist));
-                const epistemicUncertainty = 1 - confidence;
-
-                let probabilities = Array(clusters.length).fill(0);
-                const baseProb = 1 / clusters.length;
-
-                if (confidence > 0.65) {
-                    const highProb = baseProb + (1 - baseProb) * confidence * 0.9;
-                    const lowProb = (1 - highProb) / (clusters.length - 1);
-                    probabilities.fill(lowProb);
-                    probabilities[closestCluster] = highProb;
-                    explanationText.textContent = "输入点靠近已知数据簇，模型非常确定。";
-                    resultTitle.textContent = `预测结果：${clusters[closestCluster].label}`;
-                } else {
-                    const mainProb = Math.min(1.0, baseProb + confidence * 0.3);
-                    const remainingProb = (1 - mainProb) / (clusters.length - 1);
-                    probabilities.fill(remainingProb);
-                    probabilities[closestCluster] = mainProb;
-                    if (epistemicUncertainty > 0.85) {
-                        explanationText.textContent = "输入点远离所有已知数据，模型非常不确定！";
-                        resultTitle.textContent = "预测结果：无法确定";
-                    } else {
-                        explanationText.textContent = "输入点位于数据簇之间，模型不太确定。";
-                        resultTitle.textContent = "预测结果：可能是 " + clusters[closestCluster].label;
-                    }
-                }
-                
-                if (predictionChart) {
-                    predictionChart.data.datasets[0].data = probabilities;
-                    predictionChart.update();
-                }
-
-                const uncertaintyPercentage = Math.round(epistemicUncertainty * 100);
-                uncertaintyBar.style.width = `${uncertaintyPercentage}%`;
-                uncertaintyBar.textContent = `${uncertaintyPercentage}%`;
-            };
-
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
-        }
-
-        function showSection(sectionId) {
-            contentSections.forEach(s => s.style.display = 'none');
-            navLinks.forEach(l => l.classList.remove('active'));
-
-            const targetSection = document.getElementById(sectionId);
-            const targetLink = document.querySelector(`#table-of-contents a[href="#${sectionId}"]`);
-
-            if (targetSection) targetSection.style.display = 'block';
-            if (targetLink) targetLink.classList.add('active');
-
-            renderAllKatex();
+            mobileMenuButton.addEventListener('click', () => {
+                sidebar.classList.toggle('-translate-x-full');
+            });
             
-            if (sectionId === 'section-interactive') {
-                initializePredictionChart();
-                setupInteractiveCanvas();
-            }
-
-            // Scroll to top of main content area
-            if (mainContent) mainContent.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        navLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const sectionId = this.getAttribute('href').substring(1);
-                showSection(sectionId);
-                if (window.innerWidth < 768) {
-                    sidebar.classList.add('-translate-x-full');
-                }
-            });
+            // Handle initial page load with hash
+            const initialSection = window.location.hash ? window.location.hash.substring(1) : 'intro';
+            showSection(initialSection);
         });
-
-        mobileMenuButton.addEventListener('click', () => {
-            sidebar.classList.toggle('-translate-x-full');
-        });
-        
-        // Add navigation for Next/Prev buttons
-        const sectionsArray = Array.from(contentSections);
-        sectionsArray.forEach((section, index) => {
-            const navContainer = document.createElement('div');
-            navContainer.className = 'mt-12 pt-8 border-t border-slate-200 flex justify-between';
-            
-            let prevBtn, nextBtn;
-
-            if (index > 0) {
-                const prevSection = sectionsArray[index - 1];
-                const prevLink = document.querySelector(`#table-of-contents a[href="#${prevSection.id}"]`);
-                prevBtn = `<a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="${prevSection.id}">← 上一节：${prevLink.textContent.substring(3)}</a>`;
-            } else {
-                prevBtn = `<span class="bg-slate-100 text-slate-400 font-semibold py-2 px-4 rounded-lg cursor-not-allowed">← 上一节</span>`;
-            }
-
-            if (index < sectionsArray.length - 1) {
-                 const nextSection = sectionsArray[index + 1];
-                 const nextLink = document.querySelector(`#table-of-contents a[href="#${nextSection.id}"]`);
-                 nextBtn = `<a href="#" class="page-nav-btn bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors" data-target="${nextSection.id}">下一节：${nextLink.textContent.substring(3)} →</a>`;
-            } else {
-                 nextBtn = `<span class="bg-slate-100 text-slate-400 font-semibold py-2 px-4 rounded-lg cursor-not-allowed">下一节 →</span>`;
-            }
-
-            navContainer.innerHTML = prevBtn + nextBtn;
-            const contentDiv = section.querySelector('.max-w-4xl');
-            if (contentDiv) {
-                contentDiv.appendChild(navContainer);
-            }
-        });
-
-        document.querySelectorAll('.page-nav-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                showSection(this.dataset.target);
-            });
-        });
-        
-        // Initial load
-        const initialSection = window.location.hash ? window.location.hash.substring(1) : 'section-intro';
-        showSection(initialSection);
-
-    });
     </script>
 </body>
 </html>
-
